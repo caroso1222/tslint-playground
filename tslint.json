@@ -65,8 +65,8 @@
       "ignore-params"
     ],
     "no-misused-new": true,
-    "no-non-null-assertion": true,
-    "no-shadowed-variable": true,
+    "no-non-null-assertion": false,
+    "no-shadowed-variable": false,
     "no-string-literal": false,
     "no-string-throw": true,
     "no-switch-case-fall-through": true,
@@ -83,11 +83,8 @@
       "check-else",
       "check-whitespace"
     ],
-    "prefer-const": true,
-    "quotemark": [
-      true,
-      "single"
-    ],
+    "prefer-const": false,
+    "quotemark": false,
     "radix": true,
     "semicolon": [
       true,
