@@ -14,7 +14,6 @@ export class AppComponent {
 
   onKeyup(text) {
     console.log(text);
-
     localStorage.setItem("source", text);
     const _Linter = new Linter({ fix: false });
     _Linter.lint("TSLintPlayground.ts", localStorage.getItem("source"));
