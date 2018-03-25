@@ -116,7 +116,7 @@ class TypedefWhitespaceWalker extends Lint.AbstractWalker<Options> {
         return ts.forEachChild(sourceFile, cb);
     }
 
-    private checkSpace(node: ts.SignatureDeclaration | ts.VariableLikeDeclaration, key: OptionType) {
+    private checkSpace(node: ts.SignatureDeclaration | ts.VariableLikeDeclaration | any, key: OptionType) {
         if (node.type === undefined) {
             return;
         }

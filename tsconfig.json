@@ -15,5 +15,9 @@
       "es2017",
       "dom"
     ]
-  }
+  },
+  "include": [
+      "./src/app/shared/tslint/Linter.ts",
+      "./src/**/*"
+  ]
 }

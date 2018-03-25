@@ -15,23 +15,22 @@
  * limitations under the License.
  */
 
-import * as fs from "fs";
-import * as path from "path";
 
 import { FatalError, showWarningOnce } from "./error";
 import { IOptions, IRule, RuleConstructor } from "./language/rule/rule";
 import { arrayify, camelize, dedent, find } from "./utils";
 
-const CORE_RULES_DIRECTORY = path.resolve(__dirname, "rules");
+
 const cachedRules = new Map<string, RuleConstructor | "not-found">();
 
 export function loadRules(ruleOptionsList: IOptions[],
                           rulesDirectories?: string | string[],
-                          isJs = false): IRule[] {
+                          isJs = false,
+                          lazyRules?: any): IRule[] {
     const rules: IRule[] = [];
     const notFoundRules: string[] = [];
     const notAllowedInJsRules: string[] = [];
-
+    console.log(ruleOptionsList);
     for (const ruleOptions of ruleOptionsList) {
         if (ruleOptions.ruleSeverity === "off") {
             // Perf: don't bother finding the rule if it's disabled.
@@ -39,7 +38,7 @@ export function loadRules(ruleOptionsList: IOptions[],
         }
 
         const ruleName = ruleOptions.ruleName;
-        const Rule = findRule(ruleName, rulesDirectories);
+        const Rule = findRule(ruleName, rulesDirectories, lazyRules);
         if (Rule === undefined) {
             notFoundRules.push(ruleName);
         } else if (isJs && Rule.metadata !== undefined && Rule.metadata.typescriptOnly) {
@@ -82,13 +81,27 @@ export function loadRules(ruleOptionsList: IOptions[],
 }
 
 /** @internal private API */
-export function findRule(name: string, rulesDirectories?: string | string[]): RuleConstructor | undefined {
-    const camelizedName = transformName(name);
-    // first check for core rules
-    const Rule = loadCachedRule(CORE_RULES_DIRECTORY, camelizedName);
-    return Rule !== undefined ? Rule :
-        // then check for rules within the first level of rulesDirectory
-        find(arrayify(rulesDirectories), (dir) => loadCachedRule(dir, camelizedName, true));
+export function findRule(name: string, rulesDirectories?: string | string[], lazyRules?: any): RuleConstructor | undefined {
+  const camelizedName = transformName(name);
+  // first check for core rules
+  const Rule = loadCachedRule(camelizedName, lazyRules);
+  return Rule !== undefined ? Rule :
+      // then check for rules within the first level of rulesDirectory
+      find(arrayify(rulesDirectories), (dir) => loadCachedRule(dir, camelizedName, true));
+}
+
+function loadCachedRule(ruleName: string, lazyRules?: any, isCustomPath?: boolean): RuleConstructor | undefined {
+  // use cached value if available
+
+  const cachedRule = cachedRules.get(ruleName);
+  const lazy = lazyRules.filter((rule: any) => `${camelize(rule.metadata.ruleName)}Rule` === ruleName)[0];
+  console.log({lazy, ruleName, lazyRules});
+
+  if (lazy) {
+    return lazy;
+  } else {
+    return undefined;
+  }
 }
 
 function transformName(name: string): string {
@@ -105,36 +118,18 @@ function transformName(name: string): string {
  * @param directory - An absolute path to a directory of rules
  * @param ruleName - A name of a rule in filename format. ex) "someLintRule"
  */
-function loadRule(directory: string, ruleName: string): RuleConstructor | "not-found" {
+function loadRule(ruleName: string, lazyRules: any): RuleConstructor | "not-found" {
     let ruleFullPath: string;
-    try {
-        // Resolve using node's path resolution to allow developers to write custom rules in TypeScript which can be loaded by TS-Node
-        ruleFullPath = require.resolve(path.join(directory, ruleName));
-    } catch {
-        return "not-found";
+    // try {
+    //     // Resolve using node's path resolution to allow developers to write custom rules in TypeScript which can be loaded by TS-Node
+    //     // ruleFullPath = require.resolve(path.join(directory, ruleName));
+    // } catch {
+    //     return "not-found";
+    // }
+    console.log(cachedRules);
+    if (cachedRules.get(ruleName) === undefined) {
+      return "not-found";
     }
-    return (require(ruleFullPath) as { Rule: RuleConstructor }).Rule;
+    return cachedRules.get(ruleName) as any;
 }
 
-function loadCachedRule(directory: string, ruleName: string, isCustomPath?: boolean): RuleConstructor | undefined {
-    // use cached value if available
-    const fullPath = path.join(directory, ruleName);
-    const cachedRule = cachedRules.get(fullPath);
-    if (cachedRule !== undefined) {
-        return cachedRule === "not-found" ? undefined : cachedRule;
-    }
-
-    // treat directory as a relative path (which needs to be resolved) if it's a custom rule directory
-    let absolutePath: string = directory;
-    if (isCustomPath) {
-        absolutePath = path.resolve(directory);
-        if (!fs.existsSync(absolutePath)) {
-            throw new FatalError(`Could not find custom rule directory: ${absolutePath}`);
-        }
-    }
-
-    const Rule = loadRule(absolutePath, ruleName);
-
-    cachedRules.set(fullPath, Rule);
-    return Rule === "not-found" ? undefined : Rule;
-}

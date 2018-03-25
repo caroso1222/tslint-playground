@@ -15,15 +15,14 @@
  * limitations under the License.
  */
 
-import * as path from "path";
 import { isBlockScopedVariableDeclarationList, isIdentifier, isPrefixUnaryExpression } from "tsutils";
 import * as ts from "typescript";
 
 import { IDisabledInterval, RuleFailure } from "./rule/rule";
 
 export function getSourceFile(fileName: string, source: string): ts.SourceFile {
-    const normalizedName = path.normalize(fileName).replace(/\\/g, "/");
-    return ts.createSourceFile(normalizedName, source, ts.ScriptTarget.ES5, /*setParentNodes*/ true);
+    // const normalizedName = path.normalize(fileName).replace(/\\/g, "/");
+    return ts.createSourceFile('normalizedName', source, ts.ScriptTarget.ES5, /*setParentNodes*/ true);
 }
 
 /** @deprecated See IDisabledInterval. */

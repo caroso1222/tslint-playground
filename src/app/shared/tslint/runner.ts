@@ -25,7 +25,6 @@ import * as ts from "typescript";
 
 import {
     DEFAULT_CONFIG,
-    findConfiguration,
     JSON_CONFIG_FILENAME,
 } from "./configuration";
 import { FatalError } from "./error";
@@ -139,11 +138,7 @@ async function runWorker(options: Options, logger: Logger): Promise<Status> {
         return Status.Ok;
     }
 
-    if (options.test) {
-        const test = await import("./test");
-        const results = test.runTests((options.files || []).map(trimSingleQuotes), options.rulesDirectory);
-        return test.consoleTestResultsHandler(results, logger) ? Status.Ok : Status.FatalError;
-    }
+
 
     if (options.config && !fs.existsSync(options.config)) {
         throw new FatalError(`Invalid option for configuration: ${options.config}`);
@@ -170,7 +165,7 @@ async function runLinter(options: Options, logger: Logger): Promise<LintResult> 
             }
         }
     }
-    return doLinting(options, files, program, logger);
+    return undefined;
 }
 
 function resolveFilesAndProgram(
@@ -190,13 +185,13 @@ function resolveFilesAndProgram(
     }
 
     exclude = exclude.map((pattern) => path.resolve(pattern));
-    const program = Linter.createProgram(projectPath);
+
     let filesFound: string[];
     if (files.length === 0) {
-        filesFound = filterFiles(Linter.getFileNames(program), exclude, false);
+
     } else {
         files = files.map((f) => path.resolve(f));
-        filesFound = filterFiles(program.getSourceFiles().map((f) => f.fileName), files, true);
+
         filesFound = filterFiles(filesFound, exclude, false);
 
         // find non-glob files that have no matching file in the project and are not excluded by any exclude pattern
@@ -209,7 +204,7 @@ function resolveFilesAndProgram(
             }
         }
     }
-    return { files: filesFound, program };
+    return { files: filesFound, program: {} as any };
 }
 
 function filterFiles(files: string[], patterns: string[], include: boolean): string[] {
@@ -221,7 +216,7 @@ function filterFiles(files: string[], patterns: string[], include: boolean): str
 }
 
 function resolveGlobs(files: string[], ignore: string[], outputAbsolutePaths: boolean | undefined, logger: Logger): string[] {
-    const results = flatMap(
+    const results: string[] = flatMap(
         files,
         (file) => glob.sync(trimSingleQuotes(file), { ignore, nodir: true }),
     );
@@ -235,47 +230,6 @@ function resolveGlobs(files: string[], ignore: string[], outputAbsolutePaths: bo
     return results.map((file) => outputAbsolutePaths ? path.resolve(cwd, file) : path.relative(cwd, file));
 }
 
-async function doLinting(options: Options, files: string[], program: ts.Program | undefined, logger: Logger): Promise<LintResult> {
-    const linter = new Linter(
-        {
-            fix: !!options.fix,
-            formatter: options.format,
-            formattersDirectory: options.formattersDirectory,
-            rulesDirectory: options.rulesDirectory,
-        },
-        program);
-
-    let lastFolder: string | undefined;
-    let configFile = options.config !== undefined ? findConfiguration(options.config).results : undefined;
-
-    for (const file of files) {
-        if (options.config === undefined) {
-            const folder = path.dirname(file);
-            if (lastFolder !== folder) {
-                configFile = findConfiguration(null, folder).results;
-                lastFolder = folder;
-            }
-        }
-        if (isFileExcluded(file)) {
-            continue;
-        }
-
-        const contents = program !== undefined ? program.getSourceFile(file).text : await tryReadFile(file, logger);
-        if (contents !== undefined) {
-            linter.lint(file, contents, configFile);
-        }
-    }
-
-    return linter.getResult();
-
-    function isFileExcluded(filepath: string) {
-        if (configFile === undefined || configFile.linterOptions == undefined || configFile.linterOptions.exclude == undefined) {
-            return false;
-        }
-        const fullPath = path.resolve(filepath);
-        return configFile.linterOptions.exclude.some((pattern) => new Minimatch(pattern).match(fullPath));
-    }
-}
 
 /** Read a file, but return undefined if it is an MPEG '.ts' file. */
 async function tryReadFile(filename: string, logger: Logger): Promise<string | undefined> {

@@ -15,13 +15,9 @@
  * limitations under the License.
  */
 
-import * as fs from "fs";
-import * as path from "path";
-import * as resolve from "resolve";
 import { FormatterConstructor } from "./index";
 import { camelize } from "./utils";
-
-const CORE_FORMATTERS_DIRECTORY = path.resolve(__dirname, "formatters");
+import { Formatter as ProseFormatter } from './formatters/proseFormatter';
 
 export function findFormatter(name: string | FormatterConstructor, formattersDirectory?: string): FormatterConstructor | undefined {
     if (typeof name === "function") {
@@ -31,58 +27,25 @@ export function findFormatter(name: string | FormatterConstructor, formattersDir
         const camelizedName = camelize(`${name}Formatter`);
 
         // first check for core formatters
-        let Formatter = loadFormatter(CORE_FORMATTERS_DIRECTORY, camelizedName, true);
+        let Formatter = ProseFormatter;
         if (Formatter !== undefined) {
             return Formatter;
         }
 
         // then check for rules within the first level of rulesDirectory
         if (formattersDirectory !== undefined) {
-            Formatter = loadFormatter(formattersDirectory, camelizedName);
+            Formatter = ProseFormatter;
             if (Formatter !== undefined) {
                 return Formatter;
             }
         }
 
         // else try to resolve as module
-        return loadFormatterModule(name);
+        return undefined;
     } else {
         // If an something else is passed as a name (e.g. object)
         throw new Error(`Name of type ${typeof name} is not supported.`);
     }
 }
 
-function loadFormatter(directory: string, name: string, isCore?: boolean): FormatterConstructor | undefined {
-    const formatterPath = path.resolve(path.join(directory, name));
-    let fullPath: string;
-    if (isCore) {
-        fullPath = `${formatterPath}.js`;
-        if (!fs.existsSync(fullPath)) {
-            return undefined;
-        }
-    } else {
-        // Resolve using node's path resolution to allow developers to write custom formatters in TypeScript which can be loaded by TS-Node
-        try {
-            fullPath = require.resolve(formatterPath);
-        } catch {
-            return undefined;
-        }
-    }
-    return (require(fullPath) as { Formatter: FormatterConstructor }).Formatter;
-}
 
-function loadFormatterModule(name: string): FormatterConstructor | undefined {
-    let src: string;
-    try {
-        // first try to find a module in the dependencies of the currently linted project
-        src = resolve.sync(name, {basedir: process.cwd()});
-    } catch {
-        try {
-            // if there is no local module, try relative to the installation of TSLint (might be global)
-            src = require.resolve(name);
-        } catch {
-            return undefined;
-        }
-    }
-    return (require(src) as { Formatter: FormatterConstructor }).Formatter;
-}

@@ -10,7 +10,7 @@ import {
     LintResult,
 } from "tslint";
 import { arrayify, dedent, flatMap } from "./utils/all";
-import createCompilerHostForBrowser from "./CompilerHostBrowser";
+import createCompilerHostForBrowser from "./_CompilerHostBrowser";
 import NoConsoleRule from "./rules/noConsoleRule";
 
 export const FILE_NAME = "TSLintPlayground.ts";

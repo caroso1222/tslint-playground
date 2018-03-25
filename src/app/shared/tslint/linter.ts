@@ -15,18 +15,10 @@
  * limitations under the License.
  */
 
-import * as fs from "fs";
-import * as path from "path";
 import * as ts from "typescript";
-
 import {
     convertRuleOptions,
-    DEFAULT_CONFIG,
-    findConfiguration,
-    findConfigurationPath,
-    getRulesDirectories,
     IConfigurationFile,
-    loadConfigurationFromPath,
 } from "./configuration";
 import { removeDisabledFailures } from "./enableDisableRules";
 import { FatalError, isError, showWarningOnce } from "./error";
@@ -43,49 +35,10 @@ import { arrayify, dedent, flatMap, mapDefined } from "./utils";
 export class Linter {
     public static VERSION = "5.9.1";
 
-    public static findConfiguration = findConfiguration;
-    public static findConfigurationPath = findConfigurationPath;
-    public static getRulesDirectories = getRulesDirectories;
-    public static loadConfigurationFromPath = loadConfigurationFromPath;
-
     private failures: RuleFailure[] = [];
     private fixes: RuleFailure[] = [];
 
-    /**
-     * Creates a TypeScript program object from a tsconfig.json file path and optional project directory.
-     */
-    public static createProgram(configFile: string, projectDirectory: string = path.dirname(configFile)): ts.Program {
-        const config = ts.readConfigFile(configFile, ts.sys.readFile);
-        if (config.error !== undefined) {
-            throw new FatalError(ts.formatDiagnostics([config.error], {
-                getCanonicalFileName: (f) => f,
-                getCurrentDirectory: process.cwd,
-                getNewLine: () => "\n",
-            }));
-        }
-        const parseConfigHost: ts.ParseConfigHost = {
-            fileExists: fs.existsSync,
-            readDirectory: ts.sys.readDirectory,
-            readFile: (file) => fs.readFileSync(file, "utf8"),
-            useCaseSensitiveFileNames: true,
-        };
-        const parsed = ts.parseJsonConfigFileContent(config.config, parseConfigHost, path.resolve(projectDirectory), {noEmit: true});
-        if (parsed.errors !== undefined) {
-            // ignore warnings and 'TS18003: No inputs were found in config file ...'
-            const errors = parsed.errors.filter((d) => d.category === ts.DiagnosticCategory.Error && d.code !== 18003);
-            if (errors.length !== 0) {
-                throw new FatalError(ts.formatDiagnostics(errors, {
-                    getCanonicalFileName: (f) => f,
-                    getCurrentDirectory: process.cwd,
-                    getNewLine: () => "\n",
-                }));
-            }
-        }
-        const host = ts.createCompilerHost(parsed.options, true);
-        const program = ts.createProgram(parsed.fileNames, parsed.options, host);
-
-        return program;
-    }
+    rules: IRule[] = [];
 
     /**
      * Returns a list of source file names from a TypeScript program. This includes all referenced
@@ -105,26 +58,29 @@ export class Linter {
         if (typeof options !== "object") {
             throw new Error(`Unknown Linter options type: ${typeof options}`);
         }
-        if ((options as any).configuration != undefined) {
+        if ((options as any).configuration !== undefined) {
             throw new Error("ILinterOptions does not contain the property `configuration` as of version 4. " +
                 "Did you mean to pass the `IConfigurationFile` object to lint() ? ");
         }
     }
 
-    public lint(fileName: string, source: string, configuration: IConfigurationFile = DEFAULT_CONFIG): void {
+    public registerRule(rule: IRule) {
+      this.rules.push(rule);
+    }
+
+    public lint(fileName: string, source: string, configuration: IConfigurationFile): void {
         const sourceFile = this.getSourceFile(fileName, source);
         const isJs = /\.jsx?$/i.test(fileName);
-        const enabledRules = this.getEnabledRules(configuration, isJs);
-
+        const enabledRules = this.getEnabledRules(configuration, isJs, this.rules);
+        console.log(enabledRules);
+        console.log(sourceFile);
         let fileFailures = this.getAllFailures(sourceFile, enabledRules);
+        console.log(fileFailures);
         if (fileFailures.length === 0) {
             // Usual case: no errors.
             return;
         }
 
-        if (this.options.fix && fileFailures.some((f) => f.hasFix())) {
-            fileFailures = this.applyAllFixes(enabledRules, fileFailures, sourceFile, fileName);
-        }
 
         // add rule severity to failures
         const ruleSeverityMap = new Map(enabledRules.map(
@@ -167,56 +123,8 @@ export class Linter {
         return removeDisabledFailures(sourceFile, failures);
     }
 
-    private applyAllFixes(
-            enabledRules: IRule[], fileFailures: RuleFailure[], sourceFile: ts.SourceFile, sourceFileName: string): RuleFailure[] {
-        // When fixing, we need to be careful as a fix in one rule may affect other rules.
-        // So fix each rule separately.
-        let source: string = sourceFile.text;
-
-        for (const rule of enabledRules) {
-            const hasFixes = fileFailures.some((f) => f.hasFix() && f.getRuleName() === rule.getOptions().ruleName);
-            if (hasFixes) {
-                // Get new failures in case the file changed.
-                const updatedFailures = removeDisabledFailures(sourceFile, this.applyRule(rule, sourceFile));
-                const fixableFailures = updatedFailures.filter((f) => f.hasFix());
-                this.fixes = this.fixes.concat(fixableFailures);
-                source = this.applyFixes(sourceFileName, source, fixableFailures);
-                sourceFile = this.getSourceFile(sourceFileName, source);
-            }
-        }
-
-        // If there were fixes, get the *new* list of failures.
-        return this.getAllFailures(sourceFile, enabledRules);
-    }
-
-    // Only "protected" because a test directly accesses it.
-    // tslint:disable-next-line member-ordering
-    protected applyFixes(sourceFilePath: string, source: string, fixableFailures: RuleFailure[]): string {
-        const fixesByFile = createMultiMap(fixableFailures, (f) => [f.getFileName(), f.getFix()!]);
-        fixesByFile.forEach((fileFixes, filePath) => {
-            let fileNewSource: string;
-            if (path.resolve(filePath) === path.resolve(sourceFilePath)) {
-                source = Replacement.applyFixes(source, fileFixes);
-                fileNewSource = source;
-            } else {
-                const oldSource = fs.readFileSync(filePath, "utf-8");
-                fileNewSource = Replacement.applyFixes(oldSource, fileFixes);
-            }
-            fs.writeFileSync(filePath, fileNewSource);
-            this.updateProgram(filePath);
-        });
-
-        return source;
-    }
-
-    private updateProgram(sourceFilePath: string) {
-        if (this.program !== undefined && this.program.getSourceFile(sourceFilePath) !== undefined) {
-            const options = this.program.getCompilerOptions();
-            this.program = ts.createProgram(this.program.getRootFileNames(), options, ts.createCompilerHost(options, true), this.program);
-        }
-    }
-
     private applyRule(rule: IRule, sourceFile: ts.SourceFile): RuleFailure[] {
+        console.log(rule);
         try {
             if (this.program !== undefined && isTypedRule(rule)) {
                 return rule.applyWithProgram(sourceFile, this.program);
@@ -233,11 +141,11 @@ export class Linter {
         }
     }
 
-    private getEnabledRules(configuration: IConfigurationFile = DEFAULT_CONFIG, isJs: boolean): IRule[] {
+    private getEnabledRules(configuration: IConfigurationFile, isJs: boolean, lazyRules?: any): IRule[] {
         const ruleOptionsList = convertRuleOptions(isJs ? configuration.jsRules : configuration.rules);
         const rulesDirectories = arrayify(this.options.rulesDirectory)
             .concat(arrayify(configuration.rulesDirectory));
-        return loadRules(ruleOptionsList, rulesDirectories, isJs);
+        return loadRules(ruleOptionsList, rulesDirectories, isJs, lazyRules);
     }
 
     private getSourceFile(fileName: string, source: string) {

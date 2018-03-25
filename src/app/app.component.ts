@@ -1,8 +1,8 @@
 import { Component, OnInit } from '@angular/core';
-import { Linter } from "./shared/tslint/Linter";
+import { Linter, RuleFailure, LintResult, IRule } from "./shared/tslint";
+import { parseConfigFile } from './shared/tslint/configuration';
 import * as JSON from "circular-json";
-import { RuleFailure, LintResult } from "tslint";
-
+import { stripComments } from 'tslint/lib/utils';
 
 @Component({
   selector: 'app-root',
@@ -11,7 +11,7 @@ import { RuleFailure, LintResult } from "tslint";
 })
 export class AppComponent implements OnInit {
   title = 'app';
-  rules = `{
+  _rules = `{
     "rules": {
       "arrow-return-shorthand": true,
       "callable-types": true,
@@ -157,11 +157,57 @@ export class AppComponent implements OnInit {
   }
   `;
 
-  code = `console.error('asdf');`;
+
+  rules = `{
+    "rules": {
+      "class-name": true,
+      "curly": true,
+      "no-console": [
+        true,
+        "error",
+        "log"
+      ]
+    }
+  }
+  `;
+
+  parsedRules: any;
+
+  code = `console.log('asdf');`;
+
+  linter: Linter;
 
   ngOnInit() {
-    const linter = new Linter({ fix: false });
+    this.linter = new Linter({ fix: false });
+    this.lint();
+  }
 
+  buildMap(obj) {
+    let map = new Map();
+    Object.keys(obj).forEach(key => {
+        map.set(key, obj[key]);
+    });
+    return map;
+  }
+
+  load() {
+    import('./shared/tslint/rules/noConsoleRule').then(module => {
+      console.log(module);
+      this.linter.registerRule(module.Rule as any);
+      this.lint();
+    });
+  }
+
+  lint() {
+    const rules = parseConfigFile(JSON.parse(stripComments(this.rules)));
+
+    console.log(rules);
+    // rules need to be in a ES6 Map form
+    // rules.rules = this.buildMap(rules.rules);
+    // this.parsedRules = rules;
+    this.linter.lint('_.ts', this.code, rules);
+    const failures = this.getFailures(this.linter.getResult());
+    console.log(failures);
   }
 
   // onKeyup(text: any) {
@@ -173,11 +219,11 @@ export class AppComponent implements OnInit {
   //   console.log(failures);
   // }
 
-  // getFailures(result: LintResult): string {
-  //   return result.failures.length === 0
-  //       ? "(No errors)"
-  //       : JSON.stringify(result.failures[0].getFailure());
-  // }
+  getFailures(result: LintResult): string {
+    return result.failures.length === 0
+        ? "(No errors)"
+        : JSON.stringify(result.failures[0].getFailure());
+  }
 }
 
 //  https://github.com/palantir/tslint/issues/1001#issuecomment-353804158
