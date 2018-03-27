@@ -164,21 +164,50 @@ export class AppComponent implements OnInit {
       "curly": true,
       "no-console": [
         true,
-        "error",
-        "log"
+        "error"
       ]
     }
   }
   `;
 
+  failures: string[] = [];
+
   parsedRules: any;
 
   code = `console.log('asdf');`;
+
+  initialCode = '';
 
   linter: Linter;
 
   ngOnInit() {
     this.linter = new Linter({ fix: false });
+    this.lint();
+
+    this.initialCode =
+`import { Component, OnInit, Input } from '@angular/core';
+
+@Component({
+  selector: 'my-app',
+  templateUrl: './app.component.html',
+  styleUrls: [ './app.component.css' ]
+})
+export class AppComponent implements OnInit {
+  name = 'Angular 5';
+
+  ngOnInit() {
+    let a = 2;
+    if (a < 10) {
+      this.sendData(a);
+      window.alert();
+    }
+  }
+}
+`;
+  }
+
+  onCodeUpdate(code: string) {
+    this.code = code;
     this.lint();
   }
 
@@ -200,14 +229,10 @@ export class AppComponent implements OnInit {
 
   lint() {
     const rules = parseConfigFile(JSON.parse(stripComments(this.rules)));
-
-    console.log(rules);
-    // rules need to be in a ES6 Map form
-    // rules.rules = this.buildMap(rules.rules);
-    // this.parsedRules = rules;
     this.linter.lint('_.ts', this.code, rules);
-    const failures = this.getFailures(this.linter.getResult());
-    console.log(failures);
+    console.log(this.linter.getResult());
+    this.failures = this.getFailures(this.linter.getResult());
+    console.log(this.failures);
   }
 
   // onKeyup(text: any) {
@@ -219,10 +244,14 @@ export class AppComponent implements OnInit {
   //   console.log(failures);
   // }
 
-  getFailures(result: LintResult): string {
+  getFailures(result: LintResult): string[] {
     return result.failures.length === 0
-        ? "(No errors)"
-        : JSON.stringify(result.failures[0].getFailure());
+        ? ['(No errors)']
+        : this.parseFailures(result.failures);
+  }
+
+  parseFailures(failures: RuleFailure[]) {
+    return failures.map(f => JSON.stringify(f.getFailure()));
   }
 }
 

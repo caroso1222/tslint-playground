@@ -77,6 +77,7 @@ export class Linter {
         let fileFailures = this.getAllFailures(sourceFile, enabledRules);
         console.log(fileFailures);
         if (fileFailures.length === 0) {
+          this.failures = fileFailures;
             // Usual case: no errors.
             return;
         }
@@ -94,7 +95,9 @@ export class Linter {
             failure.setRuleSeverity(severity);
         }
 
-        this.failures = this.failures.concat(fileFailures);
+        // this.failures = this.failures.concat(fileFailures);
+
+        this.failures = fileFailures;
     }
 
     public getResult(): LintResult {

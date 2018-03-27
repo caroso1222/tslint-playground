@@ -1,8 +1,7 @@
 {
   "$schema": "./node_modules/@angular/cli/lib/config/schema.json",
   "project": {
-    "name": "tslint-playground",
-    "ejected": false
+    "name": "tslint-playground"
   },
   "apps": [
     {
@@ -61,7 +60,6 @@
   },
   "defaults": {
     "styleExt": "scss",
-    "component": {
-    }
+    "component": {}
   }
 }

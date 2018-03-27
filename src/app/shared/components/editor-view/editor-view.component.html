@@ -1,7 +1,6 @@
 <div class="editors">
   <ngx-monaco-editor [options]="editorOptions"
                       class="monaco-editor"
-                      *ngIf="isEditorEnabled"
                       class="editors__monaco"
                     (ngModelChange)="onCodeUpdate($event)"
                     (onInit)="onEditorInit($event)"
