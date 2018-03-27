@@ -9,7 +9,9 @@
     "experimentalDecorators": true,
     "baseUrl": "./src",
     "paths": {
-      "@app/shared/*":"app/shared/components"
+      "@app/shared/*":[
+        "app/shared/*"
+      ]
     },
     "target": "es5",
     "typeRoots": [

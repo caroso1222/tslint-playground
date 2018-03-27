@@ -3,11 +3,13 @@ import { NgModule } from '@angular/core';
 
 
 import { AppComponent } from './app.component';
+import { EditorViewComponent } from './shared/components/editor-view/editor-view.component';
 
 
 @NgModule({
   declarations: [
-    AppComponent
+    AppComponent,
+    EditorViewComponent
   ],
   imports: [
     BrowserModule
