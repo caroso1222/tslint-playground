@@ -1,2 +1,14 @@
-<!-- <input type="text" (keyup)="onKeyup($event.srcElement.value)"> -->
-<button (click)="load()">load</button>
+<div class="row m-0 main-wrapper">
+  <div class="col-sm-4 col-xs-12 p-0 panel" [class.panel--active]="activePanel === 'editor'">
+    <app-editor-view  (codeUpdate)="onCodeUpdate($event)"
+                      (viewChange)="onEditorViewChange($event)"
+                      [initialCode]="initialCode"
+                      [rootNode]="editorRootNode"
+                      [codeSelection]="codeSelection">
+    </app-editor-view>            
+  </div>
+  <div class="col-sm-4 col-xs-12 p-0 panel">
+  </div>
+  <div class="col-sm-4 col-xs-12 p-0 panel">
+  </div>
+</div>
