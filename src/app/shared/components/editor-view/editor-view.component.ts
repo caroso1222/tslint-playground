@@ -24,6 +24,8 @@ export class EditorViewComponent implements OnInit {
     minimap: { enabled: false }
   };
 
+
+
   /**
    * Reference to the Monaco editor instance
    */
@@ -52,6 +54,10 @@ export class EditorViewComponent implements OnInit {
   @Input()
   initialCode: string;
 
+  model;
+
+  monaco = (window as any).monaco;
+
   /**
    * Stream of code updation events
    */
@@ -59,6 +65,11 @@ export class EditorViewComponent implements OnInit {
 
   ngOnInit() {
     this.code = this.initialCode;
+    this.model = {
+      value: this.initialCode,
+      language: 'typescript',
+      uri: 'foo.ts'
+    };
     this.codeUpdate$
       .pipe(
         debounceTime(500),
@@ -81,6 +92,9 @@ export class EditorViewComponent implements OnInit {
       noSemanticValidation: true,
       noSyntaxValidation: true
     });
+    setTimeout(() => {
+      this.renderMarkers();
+    }, 2000);
   }
 
   /**
@@ -91,6 +105,27 @@ export class EditorViewComponent implements OnInit {
     // console.log('sdf');
     // this.codeUpdate$.next(code);
     this.codeUpdate.next(code);
+  }
+
+  renderMarkers() {
+    console.log(this.editor.getModel('foo.ts'));
+    console.log((window as any).monaco.editor);
+    (window as any).monaco.editor.setModelMarkers(this.editor.getModel('foo.ts'), '$model1', [{
+      severity: (window as any).monaco.Severity.Error,
+      startLineNumber: 1,
+      startColumn: 0,
+      endLineNumber: 1,
+      endColumn: 10,
+      message: `Calls to 'console.error' are not allowed.`
+    }, {
+      severity: (window as any).monaco.Severity.Error,
+      startLineNumber: 2,
+      startColumn: 3,
+      endLineNumber: 2,
+      endColumn: 15,
+      message: 'msg'
+    }]);
+    console.log((window as any).monaco.editor.getModelMarkers({owner: '$model1'}));
   }
 
 }

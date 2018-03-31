@@ -164,7 +164,8 @@ export class AppComponent implements OnInit {
       "curly": true,
       "no-console": [
         true,
-        "error"
+        "error",
+        "warn"
       ]
     }
   }
@@ -174,7 +175,9 @@ export class AppComponent implements OnInit {
 
   parsedRules: any;
 
-  code = `console.log('asdf');`;
+  code =
+`console.error('asdf');
+console.warn('sdfg');`;
 
   initialCode = '';
 
@@ -250,8 +253,13 @@ export class AppComponent implements OnInit {
         : this.parseFailures(result.failures);
   }
 
-  parseFailures(failures: RuleFailure[]) {
-    return failures.map(f => JSON.stringify(f.getFailure()));
+  parseFailures(failures: RuleFailure[]): string[] {
+    return failures.map(f => (
+      '[' +
+      f.getStartPosition().getPosition() + ', ' +
+      f.getEndPosition().getPosition() + '] ' +
+      JSON.stringify(f.getFailure())
+    ));
   }
 }
 

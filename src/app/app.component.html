@@ -4,11 +4,10 @@
                       [initialCode]="code">
     </app-editor-view>            
   </div>
-  <!-- <div class="col-sm-2 col-xs-12 p-0 panel">
-    <button (click)="load()">load rules</button>
-  </div> -->
+  <div class="col-sm-2 col-xs-12 p-0 panel">
+    <button class="load-rules" (click)="load()">load rules</button>
+  </div>
   <div class="col-sm-7 col-xs-12 p-0 panel failures">
-      <button class="load-rules" (click)="load()">load rules</button>
       <div>
         <p *ngFor="let f of failures" class="fail">
           {{ f }}
