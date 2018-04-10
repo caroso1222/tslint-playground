@@ -238,7 +238,6 @@ export class AppComponent implements OnInit {
   load() {
     import('./shared/tslint/coreRules').then(module => {
       module.rules.forEach(rule => {
-        console.log(rule);
         this.linter.registerRule(rule.Rule as any);
       });
       this.lint();
