@@ -3,6 +3,7 @@ import { Linter, RuleFailure, LintResult, IRule } from "./shared/tslint";
 import { parseConfigFile } from './shared/tslint/configuration';
 import * as JSON from "circular-json";
 import { stripComments } from 'tslint/lib/utils';
+import { LintMarker } from '@app/shared/components/editor-view/editor-view.component';
 
 @Component({
   selector: 'app-root',
@@ -183,6 +184,8 @@ console.warn('sdfg');`;
 
   linter: Linter;
 
+  lintMarkers: LintMarker[] = [];
+
   ngOnInit() {
     this.linter = new Linter({ fix: false });
     this.lint();
@@ -224,7 +227,6 @@ export class AppComponent implements OnInit {
 
   load() {
     import('./shared/tslint/rules/noConsoleRule').then(module => {
-      console.log(module);
       this.linter.registerRule(module.Rule as any);
       this.lint();
     });
@@ -233,7 +235,6 @@ export class AppComponent implements OnInit {
   lint() {
     const rules = parseConfigFile(JSON.parse(stripComments(this.rules)));
     this.linter.lint('_.ts', this.code, rules);
-    console.log(this.linter.getResult());
     this.failures = this.getFailures(this.linter.getResult());
     console.log(this.failures);
   }

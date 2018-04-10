@@ -30,7 +30,6 @@ export function loadRules(ruleOptionsList: IOptions[],
     const rules: IRule[] = [];
     const notFoundRules: string[] = [];
     const notAllowedInJsRules: string[] = [];
-    console.log(ruleOptionsList);
     for (const ruleOptions of ruleOptionsList) {
         if (ruleOptions.ruleSeverity === "off") {
             // Perf: don't bother finding the rule if it's disabled.
@@ -95,8 +94,6 @@ function loadCachedRule(ruleName: string, lazyRules?: any, isCustomPath?: boolea
 
   const cachedRule = cachedRules.get(ruleName);
   const lazy = lazyRules.filter((rule: any) => `${camelize(rule.metadata.ruleName)}Rule` === ruleName)[0];
-  console.log({lazy, ruleName, lazyRules});
-
   if (lazy) {
     return lazy;
   } else {
@@ -126,7 +123,6 @@ function loadRule(ruleName: string, lazyRules: any): RuleConstructor | "not-foun
     // } catch {
     //     return "not-found";
     // }
-    console.log(cachedRules);
     if (cachedRules.get(ruleName) === undefined) {
       return "not-found";
     }

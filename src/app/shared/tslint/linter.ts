@@ -72,10 +72,7 @@ export class Linter {
         const sourceFile = this.getSourceFile(fileName, source);
         const isJs = /\.jsx?$/i.test(fileName);
         const enabledRules = this.getEnabledRules(configuration, isJs, this.rules);
-        console.log(enabledRules);
-        console.log(sourceFile);
         let fileFailures = this.getAllFailures(sourceFile, enabledRules);
-        console.log(fileFailures);
         if (fileFailures.length === 0) {
           this.failures = fileFailures;
             // Usual case: no errors.
@@ -127,7 +124,6 @@ export class Linter {
     }
 
     private applyRule(rule: IRule, sourceFile: ts.SourceFile): RuleFailure[] {
-        console.log(rule);
         try {
             if (this.program !== undefined && isTypedRule(rule)) {
                 return rule.applyWithProgram(sourceFile, this.program);

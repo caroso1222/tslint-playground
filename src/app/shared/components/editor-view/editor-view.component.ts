@@ -54,6 +54,9 @@ export class EditorViewComponent implements OnInit {
   @Input()
   initialCode: string;
 
+  @Input()
+  markers: LintMarker[] = [];
+
   model;
 
   monaco = (window as any).monaco;
@@ -102,14 +105,11 @@ export class EditorViewComponent implements OnInit {
    * @param code - new code
    */
   onCodeUpdate(code: string) {
-    // console.log('sdf');
     // this.codeUpdate$.next(code);
     this.codeUpdate.next(code);
   }
 
   renderMarkers() {
-    console.log(this.editor.getModel('foo.ts'));
-    console.log((window as any).monaco.editor);
     (window as any).monaco.editor.setModelMarkers(this.editor.getModel('foo.ts'), '$model1', [{
       severity: (window as any).monaco.Severity.Error,
       startLineNumber: 1,
@@ -125,7 +125,12 @@ export class EditorViewComponent implements OnInit {
       endColumn: 15,
       message: 'msg'
     }]);
-    console.log((window as any).monaco.editor.getModelMarkers({owner: '$model1'}));
   }
 
+}
+
+export interface LintMarker {
+  start: number;
+  end: number;
+  message: string;
 }

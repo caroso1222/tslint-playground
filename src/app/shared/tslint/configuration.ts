@@ -308,7 +308,6 @@ export function parseConfigFile(
  */
 export function convertRuleOptions(ruleConfiguration: Map<string, Partial<IOptions>>): IOptions[] {
     const output: IOptions[] = [];
-    console.log(ruleConfiguration);
     ruleConfiguration.forEach(({ ruleArguments, ruleSeverity }, ruleName) => {
         const options: IOptions = {
             disabledIntervals: [], // deprecated, so just provide an empty array.

@@ -1,6 +1,7 @@
 <div class="row m-0 main-wrapper">
   <div class="col-sm-3 col-xs-12 p-0 panel panel--active">
     <app-editor-view  (codeUpdate)="onCodeUpdate($event)"
+                      [markers]="lintMarkers"
                       [initialCode]="code">
     </app-editor-view>            
   </div>
