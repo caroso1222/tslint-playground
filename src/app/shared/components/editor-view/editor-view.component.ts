@@ -24,7 +24,13 @@ export class EditorViewComponent implements OnInit {
     minimap: { enabled: false }
   };
 
-
+  /**
+   * A cache used to store the number of characters per line of code.
+   * It has the following form:
+   * A = [1, 4, 6, 24, 1, 16], where A[i] represents the number of characters
+   * in line i.
+   */
+  cachedLinesLength = [];
 
   /**
    * Reference to the Monaco editor instance
@@ -55,7 +61,14 @@ export class EditorViewComponent implements OnInit {
   initialCode: string;
 
   @Input()
-  markers: LintMarker[] = [];
+  set markers(markers: LintMarker[]) {
+    this._markers = markers;
+    this.renderMarkers(markers);
+  }
+  get markers(): LintMarker[]  {
+    return this._markers;
+  }
+  private _markers: LintMarker[] = [];
 
   model;
 
@@ -96,7 +109,7 @@ export class EditorViewComponent implements OnInit {
       noSyntaxValidation: true
     });
     setTimeout(() => {
-      this.renderMarkers();
+      // this.renderMarkers();
     }, 2000);
   }
 
@@ -106,25 +119,52 @@ export class EditorViewComponent implements OnInit {
    */
   onCodeUpdate(code: string) {
     // this.codeUpdate$.next(code);
+    this.cacheLines(code);
     this.codeUpdate.next(code);
   }
 
-  renderMarkers() {
-    (window as any).monaco.editor.setModelMarkers(this.editor.getModel('foo.ts'), '$model1', [{
-      severity: (window as any).monaco.Severity.Error,
-      startLineNumber: 1,
-      startColumn: 0,
-      endLineNumber: 1,
-      endColumn: 10,
-      message: `Calls to 'console.error' are not allowed.`
-    }, {
-      severity: (window as any).monaco.Severity.Error,
-      startLineNumber: 2,
-      startColumn: 3,
-      endLineNumber: 2,
-      endColumn: 15,
-      message: 'msg'
-    }]);
+  renderMarkers(markers: LintMarker[]) {
+    const monacoMarkers = markers.map(marker => {
+      const [initRow, initCol] = this.getLineCol(marker.start);
+      const [endRow, endCol] = this.getLineCol(marker.end);
+      return {
+        severity: (window as any).monaco.Severity.Error,
+        startLineNumber: initRow,
+        startColumn: initCol,
+        endLineNumber: endRow,
+        endColumn: endCol,
+        message: marker.message
+      };
+    });
+    const monaco = (window as any).monaco;
+    if (monaco) {
+      monaco.editor
+        .setModelMarkers(this.editor.getModel('foo.ts'), '$model1', monacoMarkers);
+    }
+  }
+
+  /**
+   * Returns the (row, col) tuple "coordinate" of a given absolute code
+   * position. The absolute position is often obtained from the particular
+   * AST node that should be visualized in the code.
+   * @param pos - the absolute position within the code snippet
+   */
+  getLineCol(pos: number): [number, number] {
+    for (let i = 0; i < this.cachedLinesLength.length; i++) {
+      if (this.cachedLinesLength[i] > pos) {
+        return [i + 1, pos + 1];
+      }
+      pos -= this.cachedLinesLength[i];
+    }
+    return [0, 0];
+  }
+
+  /**
+   * Updates the lines length cache.
+   * @param code - Monaco code
+   */
+  cacheLines(code: string) {
+    this.cachedLinesLength = code.split('\n').map(l => l.length + 1);
   }
 
 }

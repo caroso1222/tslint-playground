@@ -163,6 +163,8 @@ export class AppComponent implements OnInit {
     "rules": {
       "class-name": true,
       "curly": true,
+      "no-sparse-arrays": true,
+      "forin": false,
       "no-console": [
         true,
         "error",
@@ -178,7 +180,15 @@ export class AppComponent implements OnInit {
 
   code =
 `console.error('asdf');
-console.warn('sdfg');`;
+console.warn('sdfg');
+for (let key in someObject) {
+  let b = someObject[key];
+}
+for (let key in someObject) {
+  if (someObject.hasOwnProperty(key)) {
+      let a = someObject[key];
+  }
+}`;
 
   initialCode = '';
 
@@ -226,8 +236,11 @@ export class AppComponent implements OnInit {
   }
 
   load() {
-    import('./shared/tslint/rules/noConsoleRule').then(module => {
-      this.linter.registerRule(module.Rule as any);
+    import('./shared/tslint/coreRules').then(module => {
+      module.rules.forEach(rule => {
+        console.log(rule);
+        this.linter.registerRule(rule.Rule as any);
+      });
       this.lint();
     });
   }
@@ -235,8 +248,13 @@ export class AppComponent implements OnInit {
   lint() {
     const rules = parseConfigFile(JSON.parse(stripComments(this.rules)));
     this.linter.lint('_.ts', this.code, rules);
-    this.failures = this.getFailures(this.linter.getResult());
-    console.log(this.failures);
+    const lintResult = this.linter.getResult();
+    this.lintMarkers = this.linter.getResult().failures.map(f => ({
+      start: f.getStartPosition().getPosition(),
+      end: f.getEndPosition().getPosition(),
+      message: JSON.stringify(f.getFailure())
+    }));
+    this.failures = this.getFailures(lintResult);
   }
 
   // onKeyup(text: any) {

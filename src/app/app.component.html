@@ -1,5 +1,5 @@
 <div class="row m-0 main-wrapper">
-  <div class="col-sm-3 col-xs-12 p-0 panel panel--active">
+  <div class="col-sm-5 col-xs-12 p-0 panel panel--active">
     <app-editor-view  (codeUpdate)="onCodeUpdate($event)"
                       [markers]="lintMarkers"
                       [initialCode]="code">
@@ -8,7 +8,7 @@
   <div class="col-sm-2 col-xs-12 p-0 panel">
     <button class="load-rules" (click)="load()">load rules</button>
   </div>
-  <div class="col-sm-7 col-xs-12 p-0 panel failures">
+  <div class="col-sm-5 col-xs-12 p-0 panel failures">
       <div>
         <p *ngFor="let f of failures" class="fail">
           {{ f }}
