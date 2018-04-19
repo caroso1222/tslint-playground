@@ -1,14 +1,17 @@
 <div class="row m-0 main-wrapper">
-  <div class="col-sm-5 col-xs-12 p-0 panel panel--active">
+  <div class="col-sm-4 col-xs-12 p-0 panel panel--active">
     <app-editor-view  (codeUpdate)="onCodeUpdate($event)"
                       [markers]="lintMarkers"
                       [initialCode]="code">
     </app-editor-view>            
   </div>
-  <div class="col-sm-2 col-xs-12 p-0 panel">
-    <button class="load-rules" (click)="load()">load rules</button>
+  <div class="col-sm-4 col-xs-12 p-0 panel">
+    <app-json-editor  (codeUpdate)="onRulesUpdate($event)"
+                      [initialCode]="rules">
+    </app-json-editor>            
   </div>
-  <div class="col-sm-5 col-xs-12 p-0 panel failures">
+  <div class="col-sm-4 col-xs-12 p-0 panel failures">
+    <button class="load-rules" (click)="load()">load rules</button>
       <div>
         <p *ngFor="let f of failures" class="fail">
           {{ f }}

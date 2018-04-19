@@ -227,6 +227,11 @@ export class AppComponent implements OnInit {
     this.lint();
   }
 
+  onRulesUpdate(code: string) {
+    this.rules = code;
+    this.lint();
+  }
+
   buildMap(obj) {
     let map = new Map();
     Object.keys(obj).forEach(key => {

@@ -6,11 +6,13 @@ import { EditorViewComponent } from './shared/components/editor-view/editor-view
 import { CommonModule } from '@angular/common';
 import { MonacoEditorModule } from 'ngx-monaco-editor';
 import { FormsModule } from '@angular/forms';
+import { JsonEditorComponent } from './shared/components/json-editor/json-editor.component';
 
 @NgModule({
   declarations: [
     AppComponent,
-    EditorViewComponent
+    EditorViewComponent,
+    JsonEditorComponent
   ],
   imports: [
     BrowserModule,
